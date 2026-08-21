@@ -1,8 +1,8 @@
 pipeline {
     stages {
-        stage('Greeting') {
+        stage('Test') {
             steps {
-                echo 'Hello Liora'
+                echo 'Test de déclenchement pipeline'
             }
         }
     }
