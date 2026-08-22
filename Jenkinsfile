@@ -35,11 +35,11 @@ pipeline {
                     curl -i http://localhost:8080/api/v1/casts/docs
                 '''
             }
-        }
         
-        post {
-            always {
-                sh 'docker compose down -v || true'
+            post {
+                always {
+                    sh 'docker compose down -v || true'
+                }
             }
         }
 
