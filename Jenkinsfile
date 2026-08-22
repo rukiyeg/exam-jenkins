@@ -4,6 +4,7 @@ pipeline {
     environment {
         DOCKERHUB_USER = "rgungoroglu"
         IMAGE_TAG = "${env.BUILD_ID}"
+        KUBECONFIG = credentials('config')
     }
     stages {
 
@@ -87,6 +88,80 @@ pipeline {
                 }
             }
         }
-
+        stage('Docker Push'){
+            environment
+            {
+            DOCKER_PASS = credentials("DOCKER_HUB_PASS") 
+            }
+            steps {
+                script {
+                    sh '''
+                    docker login -u $DOCKERHUB_USER -p $DOCKER_PASS
+                    docker push ${DOCKERHUB_USER}/movie-service:${IMAGE_TAG}
+                    docker push ${DOCKERHUB_USER}/cast-service:${IMAGE_TAG}
+                    '''
+                }
+            }
+        }
     }
+      stage('Deploy - dev') {
+            steps { script { deployToEnv('dev') } }
+        }
+ 
+        stage('Deploy - QA') {
+            steps { script { deployToEnv('qa') } }
+        }
+ 
+        stage('Deploy - staging') {
+            steps { script { deployToEnv('staging') } }
+        }
+ 
+        stage('Deploy manuelle - Production') {
+            when { branch 'master' }
+            steps {
+                timeout(time: 30, unit: 'MINUTES') {
+                    input message: "Confirmez le déploiement en PRODUCTION ?", ok: "Yes"
+                }
+                script { deployToEnv('prod') }
+            }
+        }
+ 
+        
+    }
+ 
+    post {
+        always {
+            sh 'docker logout || true'
+        }
+        success {
+            echo "Pipeline terminé avec succès pour la branche ${env.BRANCH_NAME}"
+        }
+        failure {
+            echo "Echec du pipeline sur la branche ${env.BRANCH_NAME}"
+        }
+    }
+}
+// Fonction de déploiement Helm réutilisée pour chaque environnement
+def deployToEnv(String namespace) {
+    
+    sh """
+        kubectl create namespace ${namespace} --dry-run=client -o yaml | kubectl apply -f -
+ 
+        helm upgrade --install movie-service ./charts/movie-service \
+            --namespace ${namespace} \
+            --set image.repository=${DOCKERHUB_USER}/movie-service \
+            --set image.tag=${IMAGE_TAG} \
+            -f ./charts/movie-service/values-${namespace}.yaml \
+            --wait --timeout 3m
+ 
+        helm upgrade --install cast-service ./charts/cast-service \
+            --namespace ${namespace} \
+            --set image.repository=${DOCKERHUB_USER}/cast-service \
+            --set image.tag=${IMAGE_TAG} \
+            -f ./charts/cast-service/values-${namespace}.yaml \
+            --wait --timeout 3m
+ 
+        kubectl get pods -n ${namespace}
+    """
+    
 }
