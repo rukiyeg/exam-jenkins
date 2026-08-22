@@ -28,9 +28,11 @@ pipeline {
                 sh '''
 					docker compose down -v || true
                     docker compose up --build -d
+                    echo "=== Attente du démarrage de l'application (max 30 secondes)... ==="
+                    curl --retry 10 --retry-connrefused --retry-delay 3 -s -o /dev/null http://localhost:8080/api/v1/movies/docs 
+                    echo "=== L'application est prête! ==="
                     echo "=== movie-service /docs ==="
                     curl -i http://localhost:8080/api/v1/movies/docs
-                    echo ""
                     echo "=== cast-service /docs ==="
                     curl -i http://localhost:8080/api/v1/casts/docs
                 '''
