@@ -88,6 +88,7 @@ pipeline {
                 }
             }
         }
+        
         stage('Docker Push'){
             environment
             {
@@ -103,8 +104,8 @@ pipeline {
                 }
             }
         }
-    }
-      stage('Deploy - dev') {
+        
+        stage('Deploy - dev') {
             steps { script { deployToEnv('dev') } }
         }
  
@@ -125,22 +126,22 @@ pipeline {
                 script { deployToEnv('prod') }
             }
         }
- 
+
+        post {
+            always {
+                sh 'docker logout || true'
+            }
+            success {
+                echo "Pipeline terminé avec succès pour la branche ${env.BRANCH_NAME}"
+            }
+            failure {
+                echo "Echec du pipeline sur la branche ${env.BRANCH_NAME}"
+            }
+        }
         
-    }
- 
-    post {
-        always {
-            sh 'docker logout || true'
-        }
-        success {
-            echo "Pipeline terminé avec succès pour la branche ${env.BRANCH_NAME}"
-        }
-        failure {
-            echo "Echec du pipeline sur la branche ${env.BRANCH_NAME}"
-        }
-    }
+    }  
 }
+ 
 // Fonction de déploiement Helm réutilisée pour chaque environnement
 def deployToEnv(String namespace) {
     
