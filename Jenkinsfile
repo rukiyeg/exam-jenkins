@@ -142,7 +142,14 @@ pipeline {
  
 // Fonction de déploiement Helm réutilisée pour chaque environnement
 def deployToEnv(String namespace) {
-    
+    def ports = [
+        'dev'    : [movie: 30101, cast: 30102],
+        'qa'     : [movie: 30201, cast: 30202],
+        'staging': [movie: 30301, cast: 30302],
+        'prod'   : [movie: 30401, cast: 30402]
+    ]
+    def moviePort = ports[namespace].movie
+    def castPort = ports[namespace].cast
     sh """
         kubectl create namespace ${namespace} --dry-run=client -o yaml | kubectl apply -f -
  
@@ -151,6 +158,7 @@ def deployToEnv(String namespace) {
             --set image.repository=${DOCKERHUB_USER}/movie-service \
             --set image.tag=${IMAGE_TAG} \
             --set fullnameOverride=movie-service \
+            --set service.nodePort=${moviePort} \
             --wait --timeout 3m
  
         helm upgrade --install cast-service ./charts \
@@ -158,6 +166,7 @@ def deployToEnv(String namespace) {
             --set image.repository=${DOCKERHUB_USER}/cast-service \
             --set image.tag=${IMAGE_TAG} \
             --set fullnameOverride=cast-service \
+            --set service.nodePort=${castPort} \
             --wait --timeout 3m
  
         kubectl get pods -n ${namespace}
