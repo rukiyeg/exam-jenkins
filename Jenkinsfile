@@ -146,18 +146,18 @@ def deployToEnv(String namespace) {
     sh """
         kubectl create namespace ${namespace} --dry-run=client -o yaml | kubectl apply -f -
  
-        helm upgrade --install movie-service ./charts/movie-service \
+        helm upgrade --install movie-service ./charts \
             --namespace ${namespace} \
             --set image.repository=${DOCKERHUB_USER}/movie-service \
             --set image.tag=${IMAGE_TAG} \
-            -f ./charts/movie-service/values-${namespace}.yaml \
+            --set fullnameOverride=movie-service \
             --wait --timeout 3m
  
-        helm upgrade --install cast-service ./charts/cast-service \
+        helm upgrade --install cast-service ./charts \
             --namespace ${namespace} \
             --set image.repository=${DOCKERHUB_USER}/cast-service \
             --set image.tag=${IMAGE_TAG} \
-            -f ./charts/cast-service/values-${namespace}.yaml \
+            --set fullnameOverride=cast-service \
             --wait --timeout 3m
  
         kubectl get pods -n ${namespace}
