@@ -11,6 +11,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 checkout scm
+                echo "DEBUG branche : BRANCH_NAME=${env.BRANCH_NAME} | GIT_BRANCH=${env.GIT_BRANCH}"
             }
         }
    
@@ -133,9 +134,16 @@ pipeline {
         }
         success {
             echo "Pipeline terminé avec succès pour la branche ${env.BRANCH_NAME}"
+            mail to: "r.gungoroglu@gmail.com",
+                subject: "${env.JOB_NAME} - Build # ${env.BUILD_ID} has succeeded",
+                body: "For more info on the pipeline success, check out the console output at ${env.BUILD_URL}"
         }
         failure {
-            echo "Echec du pipeline sur la branche ${env.BRANCH_NAME}"
+            echo "Echec du pipeline sur la branche ${env.BRANCH_NAME}" 
+            mail to: "r.gungoroglu@gmail.com",
+                subject: "${env.JOB_NAME} - Build # ${env.BUILD_ID} has failed",
+                body: "For more info on the pipeline failure, check out the console output at ${env.BUILD_URL}"
+        
         }
     } 
 }
