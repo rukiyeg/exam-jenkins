@@ -119,7 +119,7 @@ pipeline {
         }
  
         stage('Deploy manuelle - Production') {
-            when { branch 'master' }
+            when { env.GIT_BRANCH == 'origin/master' }
             steps {
                 timeout(time: 30, unit: 'MINUTES') {
                     input message: "Confirmez le déploiement en PRODUCTION ?", ok: "Yes"
