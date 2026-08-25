@@ -156,11 +156,6 @@ def deployToEnv(String namespace) {
             -f ./charts/postgres/values-cast-db.yaml \
             --wait --timeout 2m
 
-        # nginx : chart dedie
-        helm upgrade --install nginx ./charts/nginx \
-            --namespace ${namespace} \
-            --wait --timeout 2m
-
         # Applications : chart generique reutilise deux fois (movie-service / cast-service)
         helm upgrade --install movie-service ./charts/fastapi \
             --namespace ${namespace} \
@@ -176,6 +171,11 @@ def deployToEnv(String namespace) {
             -f ./charts/fastapi/values-cast-service.yaml \
             --wait --timeout 3m
 
+        # nginx : chart dedie
+        helm upgrade --install nginx ./charts/nginx \
+            --namespace ${namespace} \
+            --wait --timeout 2m
+            
         kubectl get pods -n ${namespace}
         helm list -n ${namespace}
 
