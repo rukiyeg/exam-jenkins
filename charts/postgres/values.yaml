@@ -1,0 +1,30 @@
+replicaCount: 1
+
+fullnameOverride: "postgres"
+
+image:
+  repository: postgres
+  tag: "12.1-alpine"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+postgres:
+  user: "postgres"
+  password: "postgres"
+  db: "postgres"
+  port: 5432
+
+service:
+  type: ClusterIP
+
+persistence:
+  enabled: false        
+  size: 1Gi
+  storageClassName: ""  
+
+resources: {}
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

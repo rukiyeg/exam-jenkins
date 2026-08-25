@@ -2,10 +2,10 @@
 To create helm chart run following command and edit values, chart files and files in templates directory based on your k8s manifests:
 
 ```
-$ helm create fastapiapp
+$ helm create fastapi
 ```
 
-Now move to the fastapiapp directory and run tree command you should see:
+Now move to the fastapi directory and run tree command you should see:
 
 ```
 $ tree

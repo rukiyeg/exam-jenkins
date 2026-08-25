@@ -1,0 +1,14 @@
+# Values spécifiques à cast-service, réutilisées sur dev/qa/staging/prod
+
+fullnameOverride: cast-service
+
+imagePullSecrets: []
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8000
+
+env:
+  - name: DATABASE_URI
+    value: "postgresql://cast_db_username:cast_db_password@cast-db/cast_db_dev"

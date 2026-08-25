@@ -142,34 +142,64 @@ pipeline {
  
 // Fonction de déploiement Helm réutilisée pour chaque environnement
 def deployToEnv(String namespace) {
-    def ports = [
-        'dev'    : [movie: 30101, cast: 30102],
-        'qa'     : [movie: 30201, cast: 30202],
-        'staging': [movie: 30301, cast: 30302],
-        'prod'   : [movie: 30401, cast: 30402]
-    ]
-    def moviePort = ports[namespace].movie
-    def castPort = ports[namespace].cast
-    sh """
+   sh """
         kubectl create namespace ${namespace} --dry-run=client -o yaml | kubectl apply -f -
- 
-        helm upgrade --install movie-service ./charts \
+
+        # Postgres (movie-db, cast-db) : chart generique reutilise deux fois
+        helm upgrade --install movie-db ./charts/postgres \
+            --namespace ${namespace} \
+            -f ./charts/postgres/values-movie-db.yaml \
+            --wait --timeout 2m
+
+        helm upgrade --install cast-db ./charts/postgres \
+            --namespace ${namespace} \
+            -f ./charts/postgres/values-cast-db.yaml \
+            --wait --timeout 2m
+
+        # nginx : chart dedie
+        helm upgrade --install nginx ./charts/nginx \
+            --namespace ${namespace} \
+            --wait --timeout 2m
+
+        # Applications : chart generique reutilise deux fois (movie-service / cast-service)
+        helm upgrade --install movie-service ./charts/fastapi \
             --namespace ${namespace} \
             --set image.repository=${DOCKERHUB_USER}/movie-service \
             --set image.tag=${IMAGE_TAG} \
-            --set fullnameOverride=movie-service \
-            --set service.nodePort=${moviePort} \
+            -f ./charts/fastapi/values-movie-service.yaml \
             --wait --timeout 3m
- 
-        helm upgrade --install cast-service ./charts \
+
+        helm upgrade --install cast-service ./charts/fastapi \
             --namespace ${namespace} \
             --set image.repository=${DOCKERHUB_USER}/cast-service \
             --set image.tag=${IMAGE_TAG} \
-            --set fullnameOverride=cast-service \
-            --set service.nodePort=${castPort} \
+            -f ./charts/fastapi/values-cast-service.yaml \
             --wait --timeout 3m
- 
+
         kubectl get pods -n ${namespace}
+        helm list -n ${namespace}
+
+        NGINX_IP=\$(kubectl get svc nginx -n ${namespace} -o jsonpath='{.spec.clusterIP}')
+        echo "nginx ClusterIP dans ${namespace} : \$NGINX_IP"
+ 
+        READY=0
+        for i in \$(seq 1 12); do
+            if curl -sf -o /dev/null http://\${NGINX_IP}:8080/api/v1/movies/docs && \
+               curl -sf -o /dev/null http://\${NGINX_IP}:8080/api/v1/casts/docs; then
+                READY=1
+                break
+            fi
+            echo "App pas encore joignable via nginx, tentative \$i/12"
+            sleep 5
+        done
+ 
+        if [ "\$READY" -ne 1 ]; then
+            echo "ECHEC : l'app ne repond pas via nginx dans ${namespace} apres deploiement"
+            kubectl logs -l app=nginx -n ${namespace} --tail=50
+            exit 1
+        fi
+        echo "Deploiement ${namespace} verifie OK : http://\${NGINX_IP}:8080/api/v1/movies/docs"
+        echo "Deploiement ${namespace} verifie OK : http://\${NGINX_IP}:8080/api/v1/cast/docs"
     """
     
 }

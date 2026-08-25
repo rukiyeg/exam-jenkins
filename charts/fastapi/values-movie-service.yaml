@@ -1,0 +1,16 @@
+# Values spécifiques à movie-service, réutilisées sur dev/qa/staging/prod
+
+fullnameOverride: movie-service
+
+imagePullSecrets: []  
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8000
+
+env:
+  - name: DATABASE_URI
+    value: "postgresql://movie_db_username:movie_db_password@movie-db/movie_db_dev"
+  - name: CAST_SERVICE_HOST_URL
+    value: "http://cast-service/api/v1/casts/"

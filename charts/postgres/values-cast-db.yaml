@@ -1,0 +1,5 @@
+fullnameOverride: cast-db
+postgres:
+  user: cast_db_username
+  password: cast_db_password
+  db: cast_db_dev

@@ -1,0 +1,5 @@
+fullnameOverride: movie-db
+postgres:
+  user: movie_db_username
+  password: movie_db_password
+  db: movie_db_dev
