@@ -17,7 +17,6 @@ pipeline {
         stage('Build images') {
             steps {
                 sh '''
-					docker rm -f jenkins
                     docker build -t ${DOCKERHUB_USER}/movie-service:${IMAGE_TAG} ./movie-service
                     docker build -t ${DOCKERHUB_USER}/cast-service:${IMAGE_TAG} ./cast-service
                 '''

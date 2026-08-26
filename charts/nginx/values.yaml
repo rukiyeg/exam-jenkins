@@ -10,10 +10,10 @@ image:
 imagePullSecrets: []
  
 service:
-  type: ClusterIP
-  port: 8080
+  type: NodePort
+  port: 80
+  nodePort: 30007  
   targetPort: 8080
- 
 resources: {}
  
 nodeSelector: {}
