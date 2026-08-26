@@ -150,7 +150,9 @@ pipeline {
  
 // Fonction de déploiement Helm réutilisée pour chaque environnement
 def deployToEnv(String namespace) {
-   sh """
+    def nodePorts = [dev: 30007, qa: 30008, staging: 30009, prod: 30010]
+    def np = nodePorts[namespace]
+    sh """
         kubectl create namespace ${namespace} --dry-run=client -o yaml | kubectl apply -f -
 
         # Postgres (movie-db, cast-db) : chart generique reutilise deux fois
@@ -182,18 +184,18 @@ def deployToEnv(String namespace) {
         # nginx : chart dedie
         helm upgrade --install nginx ./charts/nginx \
             --namespace ${namespace} \
+            --set service.nodePort=${np} \
             --wait --timeout 2m
             
         kubectl get pods -n ${namespace}
         helm list -n ${namespace}
 
-        NGINX_IP=\$(kubectl get svc nginx -n ${namespace} -o jsonpath='{.spec.clusterIP}')
-        echo "nginx ClusterIP dans ${namespace} : \$NGINX_IP"
+        echo "Test déploiement...."
  
         READY=0
         for i in \$(seq 1 12); do
-            if curl -sf -o /dev/null http://\${NGINX_IP}:8080/api/v1/movies/docs && \
-               curl -sf -o /dev/null http://\${NGINX_IP}:8080/api/v1/casts/docs; then
+            if curl -sf -o /dev/null http://localhost:${np}/api/v1/movies/docs && \
+               curl -sf -o /dev/null http://localhost:${np}/api/v1/casts/docs; then
                 READY=1
                 break
             fi
@@ -203,11 +205,13 @@ def deployToEnv(String namespace) {
  
         if [ "\$READY" -ne 1 ]; then
             echo "ECHEC : l'app ne repond pas via nginx dans ${namespace} apres deploiement"
-            kubectl logs -l app=nginx -n ${namespace} --tail=50
+            kubectl get pods,svc -n ${namespace}
+            kubectl logs -n ${namespace} deploy/nginx --tail=50 || true
+            curl -v http://localhost:${np}/api/v1/movies/docs || true
             exit 1
         fi
-        echo "Deploiement ${namespace} verifie OK : http://\${NGINX_IP}:8080/api/v1/movies/docs"
-        echo "Deploiement ${namespace} verifie OK : http://\${NGINX_IP}:8080/api/v1/cast/docs"
+        echo "Deploiement ${namespace} verifie OK : http://localhost:${np}/api/v1/movies/docs"
+        echo "Deploiement ${namespace} verifie OK : http://localhost:${np}/api/v1/casts/docs"
     """
     
 }
